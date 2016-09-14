@@ -70,11 +70,13 @@ class TwoLayerNet(object):
     # Compute the forward pass
     scores = None
     #############################################################################
-    # TODO: Perform the forward pass, computing the class scores for the input. #
+    # Perform the forward pass, computing the class scores for the input.       #
     # Store the result in the scores variable, which should be an array of      #
     # shape (N, C).                                                             #
     #############################################################################
-    pass
+    activation = X.dot(W1) + b1
+    activation[activation < 0] = 0
+    scores = activation.dot(W2) + b2
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -86,13 +88,18 @@ class TwoLayerNet(object):
     # Compute the loss
     loss = None
     #############################################################################
-    # TODO: Finish the forward pass, and compute the loss. This should include  #
+    # Finish the forward pass, and compute the loss. This should include        #
     # both the data loss and L2 regularization for W1 and W2. Store the result  #
     # in the variable loss, which should be a scalar. Use the Softmax           #
     # classifier loss. So that your results match ours, multiply the            #
     # regularization loss by 0.5                                                #
     #############################################################################
-    pass
+    exp_scores = np.exp(scores)
+    sum_scores = np.sum(exp_scores, axis=1)
+    exp_correct = exp_scores[np.arange(N), y]
+    output = exp_correct / sum_scores
+    loss = np.sum(-np.log(output)) / N
+    loss += 0.5 * reg * (np.sum(W1 * W1) + np.sum(W2 * W2))
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -100,11 +107,20 @@ class TwoLayerNet(object):
     # Backward pass: compute gradients
     grads = {}
     #############################################################################
-    # TODO: Compute the backward pass, computing the derivatives of the weights #
+    # Compute the backward pass, computing the derivatives of the weights       #
     # and biases. Store the results in the grads dictionary. For example,       #
     # grads['W1'] should store the gradient on W1, and be a matrix of same size #
     #############################################################################
-    pass
+    dW = np.divide(exp_scores, sum_scores.reshape(-1, 1))
+    dW[np.arange(N), y] += -1.0
+    dW = dW / N
+
+    grads["b2"] = np.sum(dW, axis=0)
+    grads["W2"] = activation.T.dot(dW) + reg * W2
+    dW = dW.dot(W2.T)
+    dW[activation == 0] = 0
+    grads["b1"] = np.sum(dW, axis=0)
+    grads["W1"] = X.T.dot(dW) + reg * W1
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -145,10 +161,12 @@ class TwoLayerNet(object):
       y_batch = None
 
       #########################################################################
-      # TODO: Create a random minibatch of training data and labels, storing  #
+      # Create a random minibatch of training data and labels, storing        #
       # them in X_batch and y_batch respectively.                             #
       #########################################################################
-      pass
+      mini_batch = np.random.choice(range(num_train), batch_size)
+      X_batch = X[mini_batch]
+      y_batch = y[mini_batch]
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
@@ -158,12 +176,13 @@ class TwoLayerNet(object):
       loss_history.append(loss)
 
       #########################################################################
-      # TODO: Use the gradients in the grads dictionary to update the         #
+      # Use the gradients in the grads dictionary to update the               #
       # parameters of the network (stored in the dictionary self.params)      #
       # using stochastic gradient descent. You'll need to use the gradients   #
       # stored in the grads dictionary defined above.                         #
       #########################################################################
-      pass
+      for key, value in grads.items():
+          self.params[key] -= learning_rate * value
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
@@ -206,13 +225,15 @@ class TwoLayerNet(object):
     y_pred = None
 
     ###########################################################################
-    # TODO: Implement this function; it should be VERY simple!                #
+    # Implement this function; it should be VERY simple!                      #
     ###########################################################################
-    pass
+    scores = self.loss(X)
+    exp_scores = np.exp(scores)
+    sum_scores = np.sum(exp_scores, axis=1)
+    prob = exp_scores / sum_scores.reshape(-1, 1)
+    y_pred = np.argmax(prob, axis=1)
     ###########################################################################
     #                              END OF YOUR CODE                           #
     ###########################################################################
 
     return y_pred
-
-
