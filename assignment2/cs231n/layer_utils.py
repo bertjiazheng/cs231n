@@ -25,8 +25,8 @@ def affine_relu_backward(dout, cache):
   Backward pass for the affine-relu convenience layer
   """
   fc_cache, relu_cache = cache
-  da = relu_backward(dout, relu_cache)
-  dx, dw, db = affine_backward(da, fc_cache)
+  dout = relu_backward(dout, relu_cache)
+  dx, dw, db = affine_backward(dout, fc_cache)
   return dx, dw, db
 
 
