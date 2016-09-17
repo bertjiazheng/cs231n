@@ -238,15 +238,23 @@ class FullyConnectedNet(object):
     act = X
     cache = {}
     for layer in range(1, self.num_layers + 1):
+      # output layer
       if layer == self.num_layers:
         act, cache_tmp = affine_forward(act, 
                                         self.params["W%s"%layer],
                                         self.params["b%s"%layer])
+        
+        cache["affine_%s"%layer] = cache_tmp
+      # hidden layer
       else:
         act, cache_tmp = affine_relu_forward(act, 
                                              self.params["W%s"%layer],
                                              self.params["b%s"%layer])
-      cache[layer] = cache_tmp
+        cache["affine_relu_%s"%layer] = cache_tmp
+        # dropout
+        if self.use_dropout:
+          act, cache_dropout = dropout_forward(act, self.dropout_param)
+          cache["dropout_%s"%layer] = cache_dropout
     scores = act
     ############################################################################
     #                             END OF YOUR CODE                             #
@@ -276,11 +284,14 @@ class FullyConnectedNet(object):
       loss += 0.5 * self.reg * np.sum(self.params["W%s"%layer] ** 2)
       # back propagation
       if layer == self.num_layers:
-        dout, dw, db = affine_backward(dout, cache[layer])
+        dout, dw, db = affine_backward(dout, cache["affine_%s"%layer])
         grads["W%s"%layer] = dw + self.reg * self.params["W%s"%layer]
         grads["b%s"%layer] = db
       else:
-        dout, dw, db = affine_relu_backward(dout, cache[layer])
+        # dropout
+        if self.use_dropout:
+          dout = dropout_backward(dout, cache["dropout_%s"%layer])
+        dout, dw, db = affine_relu_backward(dout, cache["affine_relu_%s"%layer])
         grads["W%s"%layer] = dw + self.reg * self.params["W%s"%layer]
         grads["b%s"%layer] = db
     ############################################################################
