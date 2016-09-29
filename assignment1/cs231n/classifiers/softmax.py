@@ -33,6 +33,7 @@ def softmax_loss_naive(W, X, y, reg):
   num_classes = W.shape[1]
   for i in xrange(num_train):
     z = X[i].dot(W)
+    z -= np.max(z)
     exp_z = np.exp(z)
     sum_z = np.sum(exp_z)
     prob  = exp_z / sum_z
@@ -74,9 +75,10 @@ def softmax_loss_vectorized(W, X, y, reg):
   #############################################################################
   num_train = X.shape[0]
   num_classes = W.shape[1]
-  z     = X.dot(W)
+  z = X.dot(W)
+  z -= np.max(z, axis=1, keepdims=True)
   exp_z = np.exp(z)
-  sum_z = np.sum(exp_z, axis=1)
+  sum_z = np.sum(exp_z, axis=1) 
   z_correct = exp_z[np.arange(num_train), y]
 
   loss += np.sum(-np.log(z_correct / sum_z))
