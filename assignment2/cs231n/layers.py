@@ -409,7 +409,7 @@ def conv_forward_naive(x, w, b, conv_param):
   x_pad = np.pad(x, pad_width=npad, mode='constant')
   H_prime = 1 + (H + 2 * pad - HH) / stride
   W_prime = 1 + (W + 2 * pad - WW) / stride
-  out = np.zeros((N, F, H_prime, W_prime))
+  out = np.zeros((N, F, int(H_prime), int(W_prime)))
   for idx_x, x_i in enumerate(x_pad):
     for idx_w, w_i in enumerate(w):
       for idx_i, i in enumerate(range(0, x_pad.shape[-2] - HH + 1, stride)):
@@ -477,7 +477,7 @@ def max_pool_forward_naive(x, pool_param):
   N, C, H, W = x.shape
   H_prime = 1 + (H - pool_height) / stride
   W_prime = 1 + (W - pool_width)  / stride
-  out = np.zeros((N, C, H_prime, W_prime))
+  out = np.zeros((N, C, int(H_prime), int(W_prime)))
   for n in range(N):
     for c in range(C):
       for idx_i, i in enumerate(range(0, H - pool_height + 1, stride)):
