@@ -229,7 +229,7 @@ def batchnorm_backward(dout, cache):
   """
   dx, dgamma, dbeta = None, None, None
   #############################################################################
-  # TODO: Implement the backward pass for batch normalization. Store the      #
+  # Implement the backward pass for batch normalization. Store the            #
   # results in the dx, dgamma, and dbeta variables.                           #
   #############################################################################
   x, x_hat, gamma, mean, var, eps = cache
@@ -268,7 +268,7 @@ def batchnorm_backward_alt(dout, cache):
   """
   dx, dgamma, dbeta = None, None, None
   #############################################################################
-  # TODO: Implement the backward pass for batch normalization. Store the      #
+  # Implement the backward pass for batch normalization. Store the            #
   # results in the dx, dgamma, and dbeta variables.                           #
   #                                                                           #
   # After computing the gradient with respect to the centered inputs, you     #
@@ -281,14 +281,11 @@ def batchnorm_backward_alt(dout, cache):
 
   dgamma = np.sum(dout * x_hat , axis=0)
   dbeta  = np.sum(dout, axis=0)
-
   dx_hat = dout * gamma
   dvar = np.sum(dx_hat * (x - mean), axis=0) / -2.0 * np.power(sigma, -3.0)
   dmean = np.sum(dx_hat, axis=0) * -1.0 / sigma
   dmean += dvar * -2.0 / N * np.sum(x - mean, axis=0)
-  dx   = dx_hat / sigma
-  dx  += dvar * 2 / N * (x - mean)
-  dx  += dmean / N
+  dx   = dx_hat / sigma + dvar * 2 / N * (x - mean) + dmean / N
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -441,8 +438,8 @@ def conv_backward_naive(dout, cache):
   # TODO: Implement the convolutional backward pass.                          #
   #############################################################################
   x, w, b, out, conv_param = cache
-  stride = conv_param["stride"]
-  pad    = conv_param["pad"]
+  # stride = conv_param["stride"]
+  # pad    = conv_param["pad"]
   dx     = np.zeros_like(x)
   dw     = np.zeros_like(w)
   db     = np.zeros_like(b)
@@ -550,13 +547,15 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
   out, cache = None, None
 
   #############################################################################
-  # TODO: Implement the forward pass for spatial batch normalization.         #
+  # Implement the forward pass for spatial batch normalization.               #
   #                                                                           #
   # HINT: You can implement spatial batch normalization using the vanilla     #
   # version of batch normalization defined above. Your implementation should  #
   # be very short; ours is less than five lines.                              #
   #############################################################################
-  pass
+  N, C, H, W = x.shape
+  out, cache = batchnorm_forward(x.swapaxes(1, 3).reshape(-1, C), gamma, beta, bn_param)
+  out = out.reshape(N, W, H, C).swapaxes(1, 3)
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -580,13 +579,15 @@ def spatial_batchnorm_backward(dout, cache):
   dx, dgamma, dbeta = None, None, None
 
   #############################################################################
-  # TODO: Implement the backward pass for spatial batch normalization.        #
+  # Implement the backward pass for spatial batch normalization.              #
   #                                                                           #
   # HINT: You can implement spatial batch normalization using the vanilla     #
   # version of batch normalization defined above. Your implementation should  #
   # be very short; ours is less than five lines.                              #
   #############################################################################
-  pass
+  N, C, H, W = dout.shape
+  dx, dgamma, dbeta = batchnorm_backward(dout.swapaxes(1, 3).reshape(-1, C), cache)
+  dx = dx.reshape(N, W, H, C).swapaxes(1, 3)
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
