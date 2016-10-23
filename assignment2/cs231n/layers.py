@@ -401,18 +401,17 @@ def conv_forward_naive(x, w, b, conv_param):
   pad    = conv_param["pad"]
   N, C, H, W = x.shape
   F, C, HH, WW = w.shape
-  # pad input x
-  npad = ((0, 0), (0, 0), (pad, pad),(pad, pad))
+  # pad input x with zero
+  npad = ((0, 0), (0, 0), (pad, pad), (pad, pad))
   x_pad = np.pad(x, pad_width=npad, mode='constant')
-  H_prime = 1 + (H + 2 * pad - HH) / stride
-  W_prime = 1 + (W + 2 * pad - WW) / stride
-  out = np.zeros((N, F, int(H_prime), int(W_prime)))
+  H_prime = int(1 + (H + 2 * pad - HH) / stride)
+  W_prime = int(1 + (W + 2 * pad - WW) / stride)
+  out = np.zeros((N, F, H_prime, W_prime))
   for idx_x, x_i in enumerate(x_pad):
     for idx_w, w_i in enumerate(w):
       for idx_i, i in enumerate(range(0, x_pad.shape[-2] - HH + 1, stride)):
         for idx_j, j in enumerate(range(0, x_pad.shape[-1] - WW + 1, stride)):
-          out[idx_x, idx_w, idx_i, idx_j] = b[idx_w] \
-                                        + np.sum(x_i[:, i:i+HH, j:j+WW] * w_i)
+          out[idx_x, idx_w, idx_i, idx_j] = b[idx_w] + np.sum(x_i[:, i:i+HH, j:j+WW]*w_i)
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -435,14 +434,38 @@ def conv_backward_naive(dout, cache):
   """
   dx, dw, db = None, None, None
   #############################################################################
-  # TODO: Implement the convolutional backward pass.                          #
+  # Implement the convolutional backward pass.                                #
   #############################################################################
   x, w, b, out, conv_param = cache
-  # stride = conv_param["stride"]
-  # pad    = conv_param["pad"]
-  dx     = np.zeros_like(x)
-  dw     = np.zeros_like(w)
-  db     = np.zeros_like(b)
+  N, C, H, W = x.shape
+  F, C, HH, WW = w.shape
+  stride = conv_param["stride"]
+  pad    = conv_param["pad"]
+  H_prime = int(1 + (H + 2 * pad - HH) / stride)
+  W_prime = int(1 + (W + 2 * pad - WW) / stride)
+  dx = np.zeros_like(x)
+  dw = np.zeros_like(w)
+  db = np.zeros_like(b)
+  npad = ((0, 0), (0, 0), (pad, pad), (pad, pad))
+  x_pad = np.pad(x, pad_width=npad, mode='constant')
+  dout_pad = np.pad(dout, pad_width=npad, mode='constant')
+  # dx
+  for idx_dout, dout_i in enumerate(dout_pad):
+    for idx_w, w_i in enumerate(w.swapaxes(0, 1)):
+      for idx_i, i in enumerate(range(0, dout_pad.shape[-2] - HH + 1, stride)):
+        for idx_j, j in enumerate(range(0, dout_pad.shape[-1] - WW + 1, stride)):
+          dx[idx_dout, idx_w, idx_i, idx_j] = \
+            np.sum(dout_i[:, i:i+HH, j:j+WW] * w_i[:, ::-1, ::-1])
+  # db
+  for i, dout_i in enumerate(dout.swapaxes(0, 1)):
+    db[i] = np.sum(dout_i)
+  # dw
+  for idx_dout, dout_i in enumerate(dout.swapaxes(0, 1)):
+    for idx_x, x_i in enumerate(x_pad.swapaxes(0, 1)):
+      for idx_i, i in enumerate(range(0, dout_pad.shape[-2] - H + 1, stride)):
+        for idx_j, j in enumerate(range(0, dout_pad.shape[-1] - W + 1, stride)):
+          dw[idx_dout, idx_x, idx_i, idx_j] = \
+            np.sum(dout_i *  x_i[:, i:i+H_prime, j:j+W_prime])
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -472,8 +495,8 @@ def max_pool_forward_naive(x, pool_param):
   pool_width  = pool_param["pool_width"]
   stride = pool_param["stride"]
   N, C, H, W = x.shape
-  H_prime = 1 + (H - pool_height) / stride
-  W_prime = 1 + (W - pool_width)  / stride
+  H_prime = int(1 + (H - pool_height) / stride)
+  W_prime = int(1 + (W - pool_width)  / stride)
   out = np.zeros((N, C, int(H_prime), int(W_prime)))
   for n in range(N):
     for c in range(C):
