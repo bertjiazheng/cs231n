@@ -400,18 +400,18 @@ def conv_forward_naive(x, w, b, conv_param):
   stride = conv_param["stride"]
   pad    = conv_param["pad"]
   N, C, H, W = x.shape
-  F, C, HH, WW = w.shape
+  F, _, HH, WW = w.shape
   # pad input x with zero
   npad = ((0, 0), (0, 0), (pad, pad), (pad, pad))
   x_pad = np.pad(x, pad_width=npad, mode='constant')
   H_prime = int(1 + (H + 2 * pad - HH) / stride)
   W_prime = int(1 + (W + 2 * pad - WW) / stride)
   out = np.zeros((N, F, H_prime, W_prime))
-  for idx_x, x_i in enumerate(x_pad):
-    for idx_w, w_i in enumerate(w):
-      for idx_i, i in enumerate(range(0, x_pad.shape[-2] - HH + 1, stride)):
-        for idx_j, j in enumerate(range(0, x_pad.shape[-1] - WW + 1, stride)):
-          out[idx_x, idx_w, idx_i, idx_j] = b[idx_w] + np.sum(x_i[:, i:i+HH, j:j+WW]*w_i)
+  for n in xrange(N):
+    for m in xrange(F):
+      for idx_i, i in enumerate(range(0, H+2*pad-HH+1, stride)):
+        for idx_j, j in enumerate(range(0, W+2*pad-WW+1, stride)):
+          out[n, m, idx_i, idx_j] = b[m] + np.sum(x_pad[n, :, i:i+HH, j:j+WW] * w[m])
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -438,34 +438,34 @@ def conv_backward_naive(dout, cache):
   #############################################################################
   x, w, b, out, conv_param = cache
   N, C, H, W = x.shape
-  F, C, HH, WW = w.shape
+  F, _, HH, WW = w.shape
   stride = conv_param["stride"]
   pad    = conv_param["pad"]
-  H_prime = int(1 + (H + 2 * pad - HH) / stride)
-  W_prime = int(1 + (W + 2 * pad - WW) / stride)
+  npad = ((0, 0), (0, 0), (pad, pad), (pad, pad))
+  x_pad = np.pad(x, pad_width=npad, mode='constant')
+  dout_pad = np.zeros((N, F, H, W))
+  dout_pad = np.pad(dout_pad, pad_width=npad, mode='constant')
+  dout_pad[:, :, 1:-1:stride, 1:-1:stride] = dout
   dx = np.zeros_like(x)
   dw = np.zeros_like(w)
   db = np.zeros_like(b)
-  npad = ((0, 0), (0, 0), (pad, pad), (pad, pad))
-  x_pad = np.pad(x, pad_width=npad, mode='constant')
-  dout_pad = np.pad(dout, pad_width=npad, mode='constant')
   # dx
-  for idx_dout, dout_i in enumerate(dout_pad):
-    for idx_w, w_i in enumerate(w.swapaxes(0, 1)):
-      for idx_i, i in enumerate(range(0, dout_pad.shape[-2] - HH + 1, stride)):
-        for idx_j, j in enumerate(range(0, dout_pad.shape[-1] - WW + 1, stride)):
-          dx[idx_dout, idx_w, idx_i, idx_j] = \
-            np.sum(dout_i[:, i:i+HH, j:j+WW] * w_i[:, ::-1, ::-1])
+  for n in range(N):
+    for c in range(C):
+      for i in range(0, H+2*pad-HH+1):
+        for j in range(0, W+2*pad-WW+1):
+          dx[n, c, i, j] += \
+            np.sum(dout_pad[n, :, i:i+HH, j:j+WW] * w[:, c, ::-1, ::-1])
   # db
   for i, dout_i in enumerate(dout.swapaxes(0, 1)):
     db[i] = np.sum(dout_i)
   # dw
-  for idx_dout, dout_i in enumerate(dout.swapaxes(0, 1)):
-    for idx_x, x_i in enumerate(x_pad.swapaxes(0, 1)):
-      for idx_i, i in enumerate(range(0, dout_pad.shape[-2] - H + 1, stride)):
-        for idx_j, j in enumerate(range(0, dout_pad.shape[-1] - W + 1, stride)):
-          dw[idx_dout, idx_x, idx_i, idx_j] = \
-            np.sum(dout_i *  x_i[:, i:i+H_prime, j:j+W_prime])
+  for c in range(C):
+    for f in range(F):
+      for i in range(0, HH):
+        for j in range(0, WW):
+          x_s = x_pad[:, c, i:i+H:stride, j:j+W:stride]
+          dw[f, c, i, j] = np.sum(dout[:, f] * x_s)
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
