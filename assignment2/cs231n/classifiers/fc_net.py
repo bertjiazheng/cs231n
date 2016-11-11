@@ -317,7 +317,7 @@ class FullyConnectedNet(object):
       else:
         # dropout
         if self.use_dropout:
-          dout, dw, db = dropout_backward(dout, cache["dropout%s"%layer])
+          dout = dropout_backward(dout, cache["dropout%s"%layer])
         if self.use_batchnorm:
           # affine - [batch norm] - relu
           dout, dw, db, dgamma, dbeta  = affine_bn_relu_backward(dout, cache["affine_bn_relu%s"%layer])
