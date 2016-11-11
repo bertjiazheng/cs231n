@@ -142,17 +142,17 @@ class CaptioningRNN(object):
     if self.cell_type == 'rnn':
       h, cache['rnn'] = rnn_forward(x_embed, h0, Wx, Wh, b)
     else:
-      pass
+      h, cache['lstm'] = lstm_forward(x_embed, h0, Wx, Wh, b)
     scores, cache['scores'] = temporal_affine_forward(h, W_vocab, b_vocab)
-    loss, dout = temporal_softmax_loss(scores, captions_out, mask)
+    loss, dscores = temporal_softmax_loss(scores, captions_out, mask)
     # backword
-    dout, grads['W_vocab'], grads['b_vocab']= temporal_affine_backward(dout, cache['scores'])
+    dout, grads['W_vocab'], grads['b_vocab']= temporal_affine_backward(dscores, cache['scores'])
     if self.cell_type == 'rnn':
       dout, dh0, grads['Wx'], grads['Wh'], grads['b'] = rnn_backward(dout, cache['rnn'])
     else:
-      pass
+      dout, dh0, grads['Wx'], grads['Wh'], grads['b'] = lstm_backward(dout, cache['lstm'])
     grads['W_embed'] = word_embedding_backward(dout, cache['embedding'])
-    dout, grads['W_proj'], grads['b_proj'] = affine_backward(dh0, cache['affine'])
+    _, grads['W_proj'], grads['b_proj'] = affine_backward(dh0, cache['affine'])
     ############################################################################
     #                             END OF YOUR CODE                             #
     ############################################################################
@@ -216,6 +216,10 @@ class CaptioningRNN(object):
     ###########################################################################
     prev_h, _ = affine_forward(features, W_proj, b_proj)
     prev_x = self._start * np.ones((N, 1), dtype=np.int32)
+    if self.cell_type == 'lstm':
+      N, H = prev_h.shape
+      prev_c = np.zeros((N, H))
+
     for t in xrange(max_length):
       if t == 0:
         # The first word should be <START>
@@ -225,7 +229,7 @@ class CaptioningRNN(object):
       if self.cell_type == 'rnn':
         prev_h, _ = rnn_step_forward(x_embed.reshape(N, -1), prev_h, Wx, Wh, b)
       else:
-        pass
+        prev_h, prev_c, _ = lstm_step_forward(x_embed.reshape(N, -1), prev_h, prev_c, Wx, Wh, b)
       scores, _ = affine_forward(prev_h, W_vocab, b_vocab)
       prev_x = np.argmax(scores, axis=1).reshape(N, 1)
       captions[:, t] = prev_x.reshape(-1)
