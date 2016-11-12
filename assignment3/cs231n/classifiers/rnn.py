@@ -217,7 +217,7 @@ class CaptioningRNN(object):
     prev_h, _ = affine_forward(features, W_proj, b_proj)
     prev_x = self._start * np.ones((N, 1), dtype=np.int32)
     if self.cell_type == 'lstm':
-      prev_c = np.zeros(prev_h)
+      prev_c = np.zeros_like(prev_h)
 
     for t in xrange(max_length):
       if t == 0:
