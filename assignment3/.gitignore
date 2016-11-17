@@ -1,3 +1,6 @@
 *.swp
 *.pyc
 .env/*
+.gitignore
+cs231n/datasets
+.ipynb_checkpoints
